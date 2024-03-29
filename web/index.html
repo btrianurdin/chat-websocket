@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ .title }}</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
+    />
+
+    <style>
+      .chat-box {
+        display: flex;
+        flex-direction: column;
+        align-items: start;
+        gap: 16px;
+        padding: 12px;
+        overflow-y: auto;
+      }
+      .chat-bubble {
+        background-color: #244bf7;
+        border-radius: 8px;
+        max-width: 80%;
+        & p {
+          margin-bottom: 0px;
+          padding: 8px 12px;
+          color: white;
+          font-size: 14px;
+        }
+      }
+      .chat-bubble.sender {
+        margin-left: auto;
+        background-color: #ffffff;
+        & p {
+          color: #000 !important;
+        }
+      }
+      form {
+        display: flex;
+        width: 100%;
+        gap: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      class="d-flex flex-column justify-content-center align-items-center"
+      style="height: 100vh"
+    >
+      <h1>WebSocket</h1>
+      <div style="width: 400px; height: 500px" class="bg-light chat-box">
+        <!-- Messages will appear here -->
+      </div>
+      <div class="mb-3 mt-2" style="width: 400px">
+        <form id="form-msg">
+          <input
+            type="text"
+            class="form-control"
+            id="text-msg"
+            name="text-msg"
+            placeholder="Type a message"
+          />
+          <button class="btn btn-primary" type="button" id="send-msg">
+            Button
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <script type="text/javascript">
+      let clientId = "";
+      const ws = new WebSocket("ws://localhost:3000/ws");
+
+      ws.onopen = function (e) {
+        console.log("Connected...");
+      };
+      ws.onmessage = function (e) {
+        const data = JSON.parse(e.data);
+        console.log("data", data);
+        switch (data.type) {
+          case "connect":
+            clientId = data.id;
+            break;
+          case "message":
+            if (data.sender !== clientId) pushMessage(data.content);
+            break;
+          default:
+            console.log("nnoe");
+            break;
+        }
+      };
+      ws.onclose = function (e) {
+        console.log("Disconnected...");
+      };
+
+      document
+        .querySelector("form#form-msg")
+        .addEventListener("submit", (e) => {
+          e.preventDefault();
+          const data = new FormData(e.target);
+          ws.send(data.get("text-msg"));
+          pushMessage(data.get("text-msg"), true);
+        });
+
+      document.querySelector("#send-msg").addEventListener("click", () => {
+        const msg = document.querySelector("#text-msg").value;
+        ws.send(msg);
+        pushMessage(msg, true);
+      });
+
+      const pushMessage = (msg, isSender = false) => {
+        const el = `
+          <div class="chat-bubble ${isSender ? "sender" : ""}">
+            <p>${msg}</p>
+          </div>`;
+        document.querySelector("#text-msg").value = "";
+        document.querySelector(".chat-box").innerHTML += el;
+      };
+    </script>
+  </body>
+</html>
